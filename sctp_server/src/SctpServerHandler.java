@@ -1,6 +1,8 @@
+import dao.GameDAO;
+import org.json.simple.JSONObject;
+
 import java.io.*;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -28,9 +30,13 @@ public class SctpServerHandler extends Thread{
 
     private DateTimeFormatter DTF = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
 
+    private GameDAO gameDAO;
+
     public SctpServerHandler(Socket socket, String directory) {
         this.socket = socket;
         this.directory = directory;
+        this.gameDAO = new GameDAO();
+        this.gameDAO.connect();
     }
 
     @Override
@@ -42,42 +48,56 @@ public class SctpServerHandler extends Thread{
             // first here
             switch (method){
                 case "GET": {
-                    var filePath = Path.of(this.directory, requestURL);
-                    if (Files.exists(filePath) && !Files.isDirectory(filePath)) {
-                        var extension = this.getFileExtension(filePath);
-                        var type = CONTENT_TYPES.get(extension);
-                        var fileBytes = Files.readAllBytes(filePath);
-                        this.sendHeader(output, 200, "OK", type, fileBytes.length);
+                    if (isRequestInDatabase(requestURL)) {
+                        String request = requestURL.split("\\?")[0];
 
-                        LogSystem.acces_log(Host, DTF.format(LocalDateTime.now()).toString(),method + " " +
-                                requestURL + "HTTP/1.1", 200,fileBytes.length,requestURL,UserAgent);
 
-                        output.write(fileBytes);
-                        output.flush();
+                        switch (request){
+                            case "/view_game_id":{
+                                String name = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
+                                this.view_game_id(output, name);
+                                break;
+                            }
+                            case "/view_game_names": {
+                                System.out.println("find it");
+                                // this.gameDAO.getFullInfoAboutGame(name);
+                                this.gameDAO.getFullInfoAboutGame();
+                                break;
+                            }
+                            default: {
+                                break;
+                            }
+                        }
                     } else {
-                        var type = CONTENT_TYPES.get("text");
-                        String message = HTTP_MESSAGE.NOT_FOUND_404;
-                        this.sendHeader(output, 404, message, type, message.length());
+                        var filePath = Path.of(this.directory, requestURL);
+                        if (Files.exists(filePath) && !Files.isDirectory(filePath)) {
+                            var extension = this.getFileExtension(filePath);
+                            var type = CONTENT_TYPES.get(extension);
+                            var fileBytes = Files.readAllBytes(filePath);
+                            this.sendHeader(output, 200, "OK", type, fileBytes.length);
 
-                        LogSystem.acces_log(Host, DTF.format(LocalDateTime.now()).toString(), method + " " +
-                                        requestURL + "HTTP/1.1", 404, message.length(),
-                                requestURL, UserAgent);
-                        
-                        System.out.println(message);
-                        sendContent(output, message, "windows-1251");
+                            LogSystem.acces_log(Host, DTF.format(LocalDateTime.now()).toString(),method + " " +
+                                    requestURL + "HTTP/1.1", 200,fileBytes.length,requestURL,UserAgent);
+
+                            output.write(fileBytes);
+                            output.flush();
+                        } else {
+                            sendHttpMessage(output, HTTP_MESSAGE.NOT_FOUND_404, 404);
+                        }
                     }
                     break;
+                }
+                case "POST":{
+                    switch (requestURL){
+                        default: {
+                            sendHttpMessage(output, HTTP_MESSAGE.FORBIDDEN_403, 403);
+                            break;
+                        }
                     }
+                    break;
+                }
                 default: {
-                    var type = CONTENT_TYPES.get("text");
-                    this.sendHeader(output, 403, HTTP_MESSAGE.FORBIDDEN_403, type, HTTP_MESSAGE.FORBIDDEN_403.length());
-
-                    LogSystem.acces_log(Host, DTF.format(LocalDateTime.now()).toString(),method + " " +
-                                    requestURL + "HTTP/1.1", 403,HTTP_MESSAGE.FORBIDDEN_403.length(),
-                            requestURL, UserAgent);
-
-                    output.write(HTTP_MESSAGE.FORBIDDEN_403.getBytes());
-                    output.flush();
+                    sendHttpMessage(output, HTTP_MESSAGE.FORBIDDEN_403, 403);
                     break;
                 }
             }
@@ -87,6 +107,51 @@ public class SctpServerHandler extends Thread{
         }
     }
 
+    private void view_game_id(OutputStream output, String name) throws IOException {
+        System.out.println(name);
+        entities.Game game = gameDAO.getGame(name);
+        // throw not found
+        if(game == null){
+            this.redirect("view_game", output);
+            return;
+        }
+        String type = CONTENT_TYPES.get("application/json");
+
+        JSONObject jsonObject = game.getGameAsJSONObject();
+        String jsonString = jsonObject.toString();
+        System.out.println("json string = " + jsonString);
+
+        this.sendHeader(output, 200, HTTP_MESSAGE.OK_200, type, jsonString.length());
+        sendContent(output, jsonString, "windows-1251");
+        output.flush();
+    }
+
+    private void redirect(String url, OutputStream output){
+        try {
+            output.write("HTTP/1.1 301 Moved Permanently\r\n".getBytes());
+            output.write(("Location: " + url + "\r\n\n").getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendHttpMessage(OutputStream output, String message, int statusCode) {
+        try {
+            String type = CONTENT_TYPES.get("text");
+            this.sendHeader(output, statusCode, message, type, message.length());
+
+            LogSystem.acces_log(Host, DTF.format(LocalDateTime.now()).toString(), method + " " +
+                            requestURL + "HTTP/1.1", statusCode, message.length(),
+                    requestURL, UserAgent);
+
+            System.out.println(message);
+            sendContent(output, message, "windows-1251");
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+
+    }
+
     private String getFileExtension(Path path){
         String name = path.getFileName().toString();
         int extensionStart = name.lastIndexOf(".");
@@ -94,16 +159,12 @@ public class SctpServerHandler extends Thread{
     }
 
     private void sendHeader(OutputStream output, int statusCode, String statusText, String type, long lenght) throws IOException {
-        // var ps = new PrintStream(output);
-        output.write(String.format("HTTP/1.1 %s %s%n", statusCode, statusText).getBytes(StandardCharsets.UTF_8));
-        output.write(String.format("Date: %s%n", DTF.format(LocalDateTime.now())).getBytes(StandardCharsets.UTF_8)); ////////////////
-        output.write(String.format("Content-Type: %s%n", type).getBytes(StandardCharsets.UTF_8));
-        output.write(String.format("Content-Length: %s%n%n", lenght).getBytes(StandardCharsets.UTF_8));
-
-
-        output.flush();
+        var ps = new PrintStream(output);
+        ps.printf("HTTP/1.1 %s %s%n", statusCode, statusText);
+        ps.printf("Date: %s%n", DTF.format(LocalDateTime.now())); ////////////////
+        ps.printf("Content-Type: %s%n", type);
+        ps.printf("Content-Length: %s%n%n", lenght);
     }
-
 
     private void sendContent(OutputStream output, String content, String charsetName) {
         try {
@@ -113,6 +174,10 @@ public class SctpServerHandler extends Thread{
             System.err.println("Err in sendContent function.(SCTP server handler)");
             e.printStackTrace();
         }
+    }
+
+    private Boolean isRequestInDatabase(String str){
+        return str.contains("?");
     }
 
     private void parseRequest(InputStream input) throws IOException {
