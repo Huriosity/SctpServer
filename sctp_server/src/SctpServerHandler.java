@@ -1,5 +1,7 @@
 import dao.GameDAO;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import sctp.ScAddr;
 
 import java.io.*;
 import java.net.Socket;
@@ -7,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,10 +64,14 @@ public class SctpServerHandler extends Thread{
                             case "/game": {  // view_game
                                 System.out.println("find it");
                                 // this.gameDAO.getFullInfoAboutGame(name);
-                                String name = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
+                                this.view_game(output);
+                                /*String name = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
                                 this.gameDAO.getFullInfoAboutGame(name);
-                                sendHttpMessage(output, HTTP_MESSAGE.FORBIDDEN_403, 403);
+                                sendHttpMessage(output, HTTP_MESSAGE.FORBIDDEN_403, 403);*/
                                 break;
+                            }
+                            case "/game_all": {
+
                             }
                             default: {
                                 break;
@@ -124,6 +131,21 @@ public class SctpServerHandler extends Thread{
         String jsonString = jsonObject.toString();
         System.out.println("json string = " + jsonString);
 
+        this.sendHeader(output, 200, HTTP_MESSAGE.OK_200, type, jsonString.length());
+        sendContent(output, jsonString, "windows-1251");
+        output.flush();
+    }
+
+    private void view_game(OutputStream output) throws IOException{
+        ArrayList<entities.Game> allGames = gameDAO.getAllGames();
+        JSONArray list = new JSONArray();
+        for (int i = 0; i < allGames.size(); i += 1) {
+            list.add(allGames.get(i).getGameAsJSONObject());
+        }
+
+        String jsonString = list.toString();
+
+        String type = CONTENT_TYPES.get("application/json");
         this.sendHeader(output, 200, HTTP_MESSAGE.OK_200, type, jsonString.length());
         sendContent(output, jsonString, "windows-1251");
         output.flush();

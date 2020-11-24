@@ -105,7 +105,7 @@ public class GameDAO {
         return result;
     }
 
-    private ArrayList<ScAddr> getAllGames(){
+    private ArrayList<ScAddr> getAllGames(boolean needScAddresses){
         ArrayList<ScAddr> result = new ArrayList<ScAddr>();
         SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
                 COMPUTER_GAME,
@@ -116,6 +116,17 @@ public class GameDAO {
         }
         return result;
     }
+
+    public ArrayList<Game> getAllGames(){
+        ArrayList<Game> result = new ArrayList<Game>();
+        ArrayList<ScAddr> scAddresses = getAllGames(true);
+        for (int i = 0; i < scAddresses.size(); i += 1) {
+            //System.out.println();
+            result.add(this.getGameByScAddr(scAddresses.get(i)));
+        }
+        return result;
+    }
+
 
     private ScAddr findNodeById(ScAddr addr, String name) {
         SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
@@ -131,6 +142,21 @@ public class GameDAO {
             }
         }
         return null;
+    }
+
+    private Game getGameByScAddr(ScAddr scGame) {
+        System.out.println("scGame addr " + scGame);
+        Game game = new Game();
+        game.setScAddr(scGame.getValue());
+        game.setName(getAllGameElements(scGame, MAIN_IDTF));
+        game.setCompanyPublisher(getAllGameElements(scGame, COMPANY_PUBLISHER));
+        game.setCompanyDevelop(getAllGameElements(scGame, COMPANY_DEVELOP));
+        game.setPlatform(getAllGameElements(scGame, PLATFORM));
+        game.setEngine(getAllGameElements(scGame, ENGINE));
+        game.setGenre(getAllGameElements(scGame, GENRE, true));
+        game.setSetting( getAllGameElements(scGame, SETTING, true));
+
+        return game;
     }
     public Game getGame(String name){
         Game game = new Game();
