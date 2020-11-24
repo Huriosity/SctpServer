@@ -12,7 +12,7 @@ public class GameDAO {
     private static ScAddr COMPANY_PUBLISHER;
     private static ScAddr PLATFORM;
     private static ScAddr ENGINE;
-    private static ScAddr ID;
+    private static ScAddr MAIN_IDTF;
 
     private SctpClient sctpClient;
 
@@ -25,64 +25,19 @@ public class GameDAO {
     // new ScType(ScType.ArcCommon)
     // ArcCommonConst
 
-    private ArrayList<String> getAllGameNamesOfElement(ScAddr elem){
-        ArrayList<String> result = new ArrayList<String>();
-        SctpIterator iter5 = sctpClient.iterate5(SctpIterator.Iterator5F_A_A_A_F,
-                elem,
-                // new ScType(),
-                // new ScType(),
-                // new ScType(),
-                new ScType(ScType.ArcCommonConst),
-                new ScType(ScType.Link),
-                new ScType(ScType.ArcPosConstPerm),
-                ID);
-        while(iter5.next()){
-            result.add(SctpClient.ByteBufferToString(sctpClient.getLinkContent(iter5.value(2))));
-        }
-        return result;
-        /*if(iter5.next()){
-            if(sctpClient.getLinkContent(iter5.value(2)) != null){
-                return SctpClient.ByteBufferToString(sctpClient.getLinkContent(iter5.value(2)));
-            }
-            else{
-                return this.get(iter5.value(2), ID);
-            }
-        }
-        return ""*/
-    }
-
-    private ArrayList<ScAddr> getAllGames(){
-        //ITERATOR_3F_A_A
-        // Iterator3F_A_A
-        ArrayList<ScAddr> result = new ArrayList<ScAddr>();
-        SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
-                COMPUTER_GAME,
-                new ScType(ScType.ArcPosConstPerm),
-                new ScType(ScType.NodeConstClass)); // game
-        while(iter3.next()){
-            result.add(iter3.value(2));
-            // result.add(SctpClient.ByteBufferToString(sctpClient.getLinkContent(iter3.value(2))));
-        }
-        return result;
-    }
-
-
     private String get(ScAddr game, ScAddr elem){
         SctpIterator iter5 = sctpClient.iterate5(SctpIterator.Iterator5F_A_A_A_F,
                 game,
                 new ScType(),
                 new ScType(),
                 new ScType(),
-                // new ScType(ScType.ArcCommonConst),
-                // new ScType(ScType.Link),
-                // new ScType(ScType.ArcPosConstPerm),
                 elem);
         if(iter5.next()){
             if(sctpClient.getLinkContent(iter5.value(2)) != null){
                 return SctpClient.ByteBufferToString(sctpClient.getLinkContent(iter5.value(2)));
             }
             else{
-                return this.get(iter5.value(2), ID);
+                return this.get(iter5.value(2), MAIN_IDTF);
             }
         }
         return "";
@@ -99,10 +54,67 @@ public class GameDAO {
                     new ScType(),
                     game);
             if(iter32.next()){
-                return this.get(iter3.value(2), ID);
+                return this.get(iter3.value(2), MAIN_IDTF);
             }
         }
         return "";
+    }
+
+    private ArrayList<String> getAllGameElements(ScAddr game,ScAddr elem, boolean elemIs3nodeConstruction){
+        if (elemIs3nodeConstruction == false) {
+            return getAllGameElements(game, elem);
+        }
+        ArrayList<String> result = new ArrayList<String>();
+        SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
+                elem,
+                new ScType(),
+                new ScType());
+        while(iter3.next()){
+            SctpIterator iter32 = sctpClient.iterate3(SctpIterator.Iterator3F_A_F,
+                    iter3.value(2),
+                    new ScType(),
+                    game);
+            if(iter32.next()){
+                result.add(this.get(iter3.value(2), MAIN_IDTF));
+            }
+        }
+
+        return result;
+    }
+
+    private ArrayList<String> getAllGameElements(ScAddr game,ScAddr elem){
+        ArrayList<String> result = new ArrayList<String>();
+        SctpIterator iter5 = sctpClient.iterate5(SctpIterator.Iterator5F_A_A_A_F,
+                game,
+                //new ScType(),
+                //new ScType(),
+                //new ScType(),
+                new ScType(ScType.ArcCommonConst),
+                new ScType(),
+                // new ScType(ScType.Link),
+                new ScType(ScType.ArcPosConstPerm),
+                elem);
+        while(iter5.next()){
+            if(sctpClient.getLinkContent(iter5.value(2)) != null){
+                result.add(SctpClient.ByteBufferToString(sctpClient.getLinkContent(iter5.value(2))));
+            } else {
+                result.add(this.get(iter5.value(2), MAIN_IDTF));
+            }
+
+        }
+        return result;
+    }
+
+    private ArrayList<ScAddr> getAllGames(){
+        ArrayList<ScAddr> result = new ArrayList<ScAddr>();
+        SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
+                COMPUTER_GAME,
+                new ScType(ScType.ArcPosConstPerm),
+                new ScType(ScType.NodeConstClass)); // game
+        while(iter3.next()){
+            result.add(iter3.value(2));
+        }
+        return result;
     }
 
     private ScAddr findNodeById(ScAddr addr, String name) {
@@ -114,7 +126,7 @@ public class GameDAO {
             return null;
         }
         while (iter3.next()) {
-            if(name.equals(this.get(iter3.value(2), ID))){
+            if(name.equals(this.get(iter3.value(2), MAIN_IDTF))){
                 return iter3.value(2);
             }
         }
@@ -122,7 +134,6 @@ public class GameDAO {
     }
 
     public Game getGame(String name){
-        // this.connect();
         System.out.println("name of game is:" + name);
         Game game = new Game();
         game.setName(name);
@@ -130,7 +141,7 @@ public class GameDAO {
         if(scGame == null)
             return null;
         game.setScAddr(scGame.getValue());
-        game.setName(this.get(scGame, ID));
+        game.setName(this.get(scGame, MAIN_IDTF));
         game.setCompanyDevelop(this.get(scGame, COMPANY_DEVELOP));
         game.setCompanyRelease(this.get(scGame, COMPANY_PUBLISHER));
         game.setEngine(this.get(scGame, ENGINE));
@@ -140,19 +151,63 @@ public class GameDAO {
         return game;
     }
 
-    public void getFullInfoAboutGame() {
-        ArrayList<ScAddr> allGameNames = getAllGames();
+    public void getFullInfoAboutGame(String name) {
 
-        // Game game = new Game();
-        System.out.println("Start getAllNames method");
-        for (int i = 0; i < allGameNames.size(); i += 1) {
-            ScAddr scAddrId = allGameNames.get(i);
-            System.out.println(scAddrId.getValue());
-            ArrayList<String> allNames = getAllGameNamesOfElement(scAddrId);
-            for (int j = 0; j < allNames.size(); j += 1) {
-                System.out.println(allNames.get(j));
-            }
+        ScAddr scGame = this.findNodeById(COMPUTER_GAME, name);
+        ArrayList<String> allNames = getAllGameElements(scGame, MAIN_IDTF);
+        ArrayList<String> publisherNames = getAllGameElements(scGame, COMPANY_PUBLISHER);
+        ArrayList<String> developerNames = getAllGameElements(scGame, COMPANY_DEVELOP);
+        ArrayList<String> platformNames = getAllGameElements(scGame, PLATFORM);
+        ArrayList<String> engineNames = getAllGameElements(scGame, ENGINE);
+        ArrayList<String> genreNames = getAllGameElements(scGame, GENRE, true);
+        ArrayList<String> settingNames = getAllGameElements(scGame, SETTING, true);
 
+        for (int j = 0; j < allNames.size(); j += 1) {
+            printScAddrIdf(allNames.get(j));
+        }
+
+        System.out.println("publishers");
+        System.out.println(publisherNames.size());
+        for (int j = 0; j < publisherNames.size(); j += 1) {
+            printScAddrIdf(publisherNames.get(j));
+        }
+
+        System.out.println("developers");
+        System.out.println(developerNames.size());
+        for (int j = 0; j < developerNames.size(); j += 1) {
+            printScAddrIdf(developerNames.get(j));
+        }
+
+        System.out.println("platformNames");
+        System.out.println(platformNames.size());
+        for (int j = 0; j < platformNames.size(); j += 1) {
+            printScAddrIdf(platformNames.get(j));
+        }
+
+        System.out.println("engineNames");
+        System.out.println(engineNames.size());
+        for (int j = 0; j < engineNames.size(); j += 1) {
+            printScAddrIdf(engineNames.get(j));
+        }
+
+        System.out.println("genreNames");
+        System.out.println(genreNames.size());
+        for (int j = 0; j < genreNames.size(); j += 1) {
+            printScAddrIdf(genreNames.get(j));
+        }
+
+        System.out.println("settingNames");
+        System.out.println(settingNames.size());
+        for (int j = 0; j < settingNames.size(); j += 1) {
+            printScAddrIdf(settingNames.get(j));
+        }
+    }
+
+    public void printScAddrIdf(String ScAddrIdf) {
+        if (ScAddrIdf == "") {
+            System.out.println("Sorry bro, but man, who add this concept in bd don't add idf");
+        } else {
+            System.out.println(ScAddrIdf);
         }
     }
 
@@ -170,7 +225,7 @@ public class GameDAO {
         COMPANY_PUBLISHER = sctpClient.findElementBySystemIdentifier("nrel_publisher");
         PLATFORM = sctpClient.findElementBySystemIdentifier("nrel_platform");
         ENGINE = sctpClient.findElementBySystemIdentifier("nrel_game_engine");
-        ID = sctpClient.findElementBySystemIdentifier("nrel_main_idtf");
+        MAIN_IDTF = sctpClient.findElementBySystemIdentifier("nrel_main_idtf");
 
         return flag;
     }

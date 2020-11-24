@@ -53,15 +53,17 @@ public class SctpServerHandler extends Thread{
 
 
                         switch (request){
-                            case "/view_game_id":{
+                            case "/game_id":{
                                 String name = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
                                 this.view_game_id(output, name);
                                 break;
                             }
-                            case "/view_game_names": {
+                            case "/game": {  // view_game
                                 System.out.println("find it");
                                 // this.gameDAO.getFullInfoAboutGame(name);
-                                this.gameDAO.getFullInfoAboutGame();
+                                String name = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
+                                this.gameDAO.getFullInfoAboutGame(name);
+                                sendHttpMessage(output, HTTP_MESSAGE.FORBIDDEN_403, 403);
                                 break;
                             }
                             default: {
@@ -110,9 +112,10 @@ public class SctpServerHandler extends Thread{
     private void view_game_id(OutputStream output, String name) throws IOException {
         System.out.println(name);
         entities.Game game = gameDAO.getGame(name);
-        // throw not found
+
         if(game == null){
-            this.redirect("view_game", output);
+            sendHttpMessage(output, HTTP_MESSAGE.NOT_FOUND_404, 404);
+            //this.redirect("view_game", output);пуеПф
             return;
         }
         String type = CONTENT_TYPES.get("application/json");
