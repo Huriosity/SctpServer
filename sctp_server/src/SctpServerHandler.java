@@ -63,15 +63,14 @@ public class SctpServerHandler extends Thread{
                             }
                             case "/game": {  // view_game
                                 System.out.println("find it");
-                                // this.gameDAO.getFullInfoAboutGame(name);
                                 this.view_game(output);
-                                /*String name = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
-                                this.gameDAO.getFullInfoAboutGame(name);
-                                sendHttpMessage(output, HTTP_MESSAGE.FORBIDDEN_403, 403);*/
                                 break;
                             }
-                            case "/game_all": {
-
+                            case "/game_part": {
+                                String filter = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
+                                System.out.println("We here");
+                                this.view_part(output, filter);
+                                break;
                             }
                             default: {
                                 break;
@@ -143,6 +142,20 @@ public class SctpServerHandler extends Thread{
             list.add(allGames.get(i).getGameAsJSONObject());
         }
 
+        String jsonString = list.toString();
+
+        String type = CONTENT_TYPES.get("application/json");
+        this.sendHeader(output, 200, HTTP_MESSAGE.OK_200, type, jsonString.length());
+        sendContent(output, jsonString, "windows-1251");
+        output.flush();
+    }
+
+    private void view_part(OutputStream output,String filter) throws IOException{
+        ArrayList<entities.Game> allGames = gameDAO.getFilteredGames(filter);
+        JSONArray list = new JSONArray();
+        for (int i = 0; i < allGames.size(); i += 1) {
+            list.add(allGames.get(i).getGameAsJSONObject());
+        }
         String jsonString = list.toString();
 
         String type = CONTENT_TYPES.get("application/json");

@@ -127,6 +127,22 @@ public class GameDAO {
         return result;
     }
 
+    public ArrayList<Game> getFilteredGames(String filter) {
+        ArrayList<Game> filteredGames = new ArrayList<Game>();
+        ArrayList<ScAddr> scAddresses = getAllGames(true);
+        for (int i = 0; i < scAddresses.size(); i += 1) {
+            ScAddr curAddr = scAddresses.get(i);
+            ArrayList<String> names = getAllGameElements(curAddr, MAIN_IDTF);
+            for (int j = 0; j < names.size(); j += 1) {
+                if (names.get(j).indexOf(filter) != -1) {
+                    Game game = getGameByScAddr(curAddr);
+                    filteredGames.add(game);
+                }
+            }
+        }
+        return filteredGames;
+    }
+
 
     private ScAddr findNodeById(ScAddr addr, String name) {
         SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
