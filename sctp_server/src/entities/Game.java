@@ -2,80 +2,83 @@ package entities;
 
 import org.json.simple.JSONObject;
 
+import java.util.ArrayList;
+
 public class Game {
     private int scAddr;
-    private String name;
-    private String genre;
-    private String setting;
-    private String companyDevelop;
-    private String companyRelease;
-    private String engine;
-    private String platform;
+
+    private ArrayList<String> name;
+    private ArrayList<String> genre;
+    private ArrayList<String> setting;
+    private ArrayList<String> companyDevelop;
+    private ArrayList<String> companyPublisher;
+    private ArrayList<String> engine;
+    private ArrayList<String> platform;
 
     public Game(){
         this.scAddr = 0;
-        this.name = "";
-        this.genre = "";
-        this.setting = "";
-        this.companyDevelop = "";
-        this.companyRelease = "";
-        this.engine = "";
-        this.platform = "";
+        this.name = new ArrayList<>();
+        this.genre = new ArrayList<>();
+        this.setting = new ArrayList<>();
+        this.companyDevelop = new ArrayList<>();
+        this.companyPublisher = new ArrayList<>();
+        this.engine = new ArrayList<>();
+        this.platform = new ArrayList<>();
     }
 
-    public String getName() {
+    public ArrayList<String> getName() {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(ArrayList<String> name) {
         this.name = name;
     }
 
-    public String getGenre() {
+    public ArrayList<String> getGenre() {
         return genre;
     }
 
-    public void setGenre(String genre) {
+    public void setGenre(ArrayList<String> genre) {
         this.genre = genre;
     }
 
-    public String getSetting() {
+    public ArrayList<String> getSetting() {
         return setting;
     }
 
-    public void setSetting(String setting) {
+    public void setSetting(ArrayList<String> setting) {
         this.setting = setting;
     }
 
-    public String getCompanyDevelop() {
+    public ArrayList<String> getCompanyDevelop() {
         return companyDevelop;
     }
 
-    public void setCompanyDevelop(String companyDevelop) {
+    public void setCompanyDevelop(ArrayList<String> companyDevelop) {
         this.companyDevelop = companyDevelop;
     }
 
-    public String getCompanyRelease() {
-        return companyRelease;
+    public ArrayList<String> getCompanyPublisher() {
+        return companyPublisher;
     }
 
-    public void setCompanyRelease(String companyRelease) {
-        this.companyRelease = companyRelease;
+    public void setCompanyPublisher(ArrayList<String> companyPublisher) {
+        this.companyPublisher = companyPublisher;
     }
 
-    public String getEngine() {
+    public ArrayList<String> getEngine() {
         return engine;
     }
 
-    public void setEngine(String engine) {
+    public void setEngine(ArrayList<String> engine) {
         this.engine = engine;
     }
 
-    public String getPlatform() {
+    public ArrayList<String> getPlatform() {
         return platform;
     }
 
-    public void setPlatform(String platform) {
+    public void setPlatform(ArrayList<String> platform) {
         this.platform = platform;
     }
 
@@ -94,7 +97,7 @@ public class Game {
         jsonObject.put("genre", this.getGenre());
         jsonObject.put("setting", this.getSetting());
         jsonObject.put("developer", this.getCompanyDevelop());
-        jsonObject.put("publisher", this.getCompanyRelease());
+        jsonObject.put("publisher", this.getCompanyPublisher());
         jsonObject.put("platform", this.getPlatform());
 
         return  jsonObject;

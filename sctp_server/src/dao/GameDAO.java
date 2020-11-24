@@ -132,25 +132,22 @@ public class GameDAO {
         }
         return null;
     }
-
     public Game getGame(String name){
-        System.out.println("name of game is:" + name);
         Game game = new Game();
-        game.setName(name);
         ScAddr scGame = this.findNodeById(COMPUTER_GAME, name);
-        if(scGame == null)
-            return null;
-        game.setScAddr(scGame.getValue());
-        game.setName(this.get(scGame, MAIN_IDTF));
-        game.setCompanyDevelop(this.get(scGame, COMPANY_DEVELOP));
-        game.setCompanyRelease(this.get(scGame, COMPANY_PUBLISHER));
-        game.setEngine(this.get(scGame, ENGINE));
-        game.setPlatform(this.get(scGame, PLATFORM));
-        game.setGenre(this.get3(scGame, GENRE));
-        game.setSetting(this.get3(scGame, SETTING));
-        return game;
-    }
 
+        game.setScAddr(scGame.getValue());
+        game.setName(getAllGameElements(scGame, MAIN_IDTF));
+        game.setCompanyPublisher(getAllGameElements(scGame, COMPANY_PUBLISHER));
+        game.setCompanyDevelop(getAllGameElements(scGame, COMPANY_DEVELOP));
+        game.setPlatform(getAllGameElements(scGame, PLATFORM));
+        game.setEngine(getAllGameElements(scGame, ENGINE));
+        game.setGenre(getAllGameElements(scGame, GENRE, true));
+        game.setSetting( getAllGameElements(scGame, SETTING, true));
+
+        return game;
+
+    }
     public void getFullInfoAboutGame(String name) {
 
         ScAddr scGame = this.findNodeById(COMPUTER_GAME, name);
