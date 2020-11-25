@@ -35,11 +35,10 @@ public class SctpServerHandler extends Thread{
 
     private GameDAO gameDAO;
 
-    public SctpServerHandler(Socket socket, String directory) {
+    public SctpServerHandler(Socket socket, String directory,GameDAO gameDAO) {
         this.socket = socket;
         this.directory = directory;
-        this.gameDAO = new GameDAO();
-        this.gameDAO.connect();
+        this.gameDAO = gameDAO;
     }
 
     @Override
@@ -57,8 +56,11 @@ public class SctpServerHandler extends Thread{
 
                         switch (request){
                             case "/game_id":{
-                                String name = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
-                                this.view_game_id(output, name);
+                                String name = getFilter(requestURL, "name");
+                                String publisher = getFilter(requestURL, "publisher");
+                                String developer = getFilter(requestURL, "developer");
+                                        // requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
+                                this.view_game_id(output, name, publisher, developer);
                                 break;
                             }
                             case "/game": {  // view_game
@@ -74,7 +76,7 @@ public class SctpServerHandler extends Thread{
                                 String genre = "";
 
                                 System.out.println("We here");
-                                this.view_part(output, nameFilter);
+                                this.view_part(output, nameFilter, publisherFilter, developerFilter);
                                 break;
                             }
                             default: {
@@ -129,7 +131,6 @@ public class SctpServerHandler extends Thread{
             int indexOfFilterNameEnd = requestURL.indexOf("&", indexOfFilterNameStart);
 
             if (indexOfFilterNameEnd != -1) {
-                // if (indexOfFilterNameEnd = inde)
                 filter = requestURL.substring(indexOfFilterNameStart, indexOfFilterNameEnd)
                         .replace("+", " ");
                 filter = trySplitFilter(filter);
@@ -157,9 +158,9 @@ public class SctpServerHandler extends Thread{
         return filter;
     }
 
-    private void view_game_id(OutputStream output, String name) throws IOException {
+    private void view_game_id(OutputStream output, String name, String publisher, String developer) throws IOException {
         System.out.println(name);
-        entities.Game game = gameDAO.getGame(name);
+        entities.Game game = gameDAO.getGame(name, publisher, developer);
 
         if(game == null){
             sendHttpMessage(output, HTTP_MESSAGE.NOT_FOUND_404, 404);
@@ -192,8 +193,9 @@ public class SctpServerHandler extends Thread{
         output.flush();
     }
 
-    private void view_part(OutputStream output,String filter) throws IOException{
-        ArrayList<entities.Game> allGames = gameDAO.getFilteredGames(filter, "concept_computer_game");
+    private void view_part(OutputStream output,String nameFilter, String publisherFilter, String developerFilter) throws IOException{
+        ArrayList<entities.Game> allGames = gameDAO.getFilteredGames(nameFilter,publisherFilter,
+                developerFilter,"concept_computer_game");
         JSONArray list = new JSONArray();
         for (int i = 0; i < allGames.size(); i += 1) {
             list.add(allGames.get(i).getGameAsJSONObject());

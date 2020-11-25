@@ -18,6 +18,7 @@ public class GameDAO {
     private static ScAddr MAIN_IDTF;
 
     private SctpClient sctpClient;
+    private static ArrayList<Game> allGames;
 
     // equals to getName
     // 5 elements construction ( 1 2 3 4 5)
@@ -109,7 +110,7 @@ public class GameDAO {
     }
 
     private ArrayList<ScAddr> getAllGames(boolean needScAddresses, ScAddr scNodeClass){
-        Set<ScAddr> result = new HashSet<ScAddr>();
+        ArrayList<ScAddr> result = new ArrayList<ScAddr>();
         SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
                 scNodeClass,
                 new ScType(ScType.ArcPosConstPerm),
@@ -119,58 +120,42 @@ public class GameDAO {
         }
         System.out.println("get All Games (2) result: ");
         System.out.println(result);
+        System.out.println("get All Games (2) result.length: " + result.size());
         System.out.println("get All Games (2) array from result: ");
         System.out.println(new ArrayList<ScAddr>(result));
         return new ArrayList<ScAddr>(result);
     }
 
-    public ArrayList<Game> getAllGames(ScAddr scNodeClass){
+    private ArrayList<Game> getAllGames(ScAddr scNodeClass){
         ArrayList<Game> result = new ArrayList<Game>();
         ArrayList<ScAddr> scAddresses = getAllGames(true, scNodeClass);
         for (int i = 0; i < scAddresses.size(); i += 1) {
-            //System.out.println();
+            System.out.println("Game iter = " + i);
             result.add(this.getGameByScAddr(scAddresses.get(i)));
         }
         return result;
     }
 
     public ArrayList<Game> getAllGames(){
-        return getAllGames(COMPUTER_GAME);
+        return allGames;
     }
-
-    public ArrayList<Game> getFilteredGames(String filter, String genreName) {
+    public ArrayList<Game> getFilteredGames(String nameFilter,String publisherFilter,String developerFilter, String genreName) {
         long startTime = System.currentTimeMillis();
-        long startMethod = startTime;
-        ScAddr genreClass = sctpClient.findElementBySystemIdentifier(genreName);
-        long endTime = System.currentTimeMillis();
-        System.out.println("Total execution time of get genre class: " + (endTime-startTime) + "ms");
-        if (genreClass == null) {
-            return new ArrayList<>();
-        }
-        ArrayList<Game> filteredGames = new ArrayList<>();
-        startTime = System.currentTimeMillis();
-        ArrayList<ScAddr> scAddresses = getAllGames(true, genreClass);
-        System.out.println("get scAddresses array from result: ");
-        System.out.println(scAddresses);
-        endTime = System.currentTimeMillis();
-        System.out.println("Total execution time of getAllGames method: " + (endTime-startTime) + "ms");
-        for (int i = 0; i < scAddresses.size(); i += 1) {
-            ScAddr curAddr = scAddresses.get(i);
-            ArrayList<String> names = getAllGameElements(curAddr, MAIN_IDTF);
-            for (int j = 0; j < names.size(); j += 1) {
-                if (names.get(j).indexOf(filter) != -1) {
-                    System.out.println("FIND !!!!!!!!!!!!!!!!!!!!!!!!!! " + i);
-                    // Game game = getGameByScAddr(curAddr);
-                    // filteredGames.add(game);
-                    break;
-                }
+        ArrayList<Game> result = new ArrayList<>();
+        for (int i = 0; i < allGames.size(); i += 1) {
+            Game curGame = allGames.get(i);
+            boolean filterNamePassed = passPartialFilter(nameFilter, curGame.getName());
+            boolean filterPublisherPassed = passPartialFilter(publisherFilter, curGame.getCompanyPublisher());
+            boolean filterDeveloperPassed = passPartialFilter(developerFilter, curGame.getCompanyDevelop());
+
+            if (filterNamePassed && filterPublisherPassed && filterDeveloperPassed) {
+                result.add(curGame);
             }
         }
-        endTime = System.currentTimeMillis();
-        System.out.println("Total execution time of getFilteredGames method: " + (endTime-startMethod) + "ms");
-        return filteredGames;
+        long endTime = System.currentTimeMillis();
+        System.out.println("Total execution time of get filtered games: " + (endTime-startTime) + "ms");
+        return result;
     }
-
 
     private ScAddr findNodeById(ScAddr addr, String name) {
         SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
@@ -202,22 +187,50 @@ public class GameDAO {
 
         return game;
     }
-    public Game getGame(String name){
-        Game game = new Game();
-        ScAddr scGame = this.findNodeById(COMPUTER_GAME, name);
+    public Game getGame(String name, String publisher, String developer){
+        for (int i = 0; i < allGames.size(); i += 1) {
+            Game curGame = allGames.get(i);
+            boolean filterNamePassed = passFilter(name, curGame);
+            boolean filterPublisherPassed = passFilter(publisher, curGame);
+            boolean filterDeveloperPassed = passFilter(developer, curGame);
 
-        game.setScAddr(scGame.getValue());
-        game.setName(getAllGameElements(scGame, MAIN_IDTF));
-        game.setCompanyPublisher(getAllGameElements(scGame, COMPANY_PUBLISHER));
-        game.setCompanyDevelop(getAllGameElements(scGame, COMPANY_DEVELOP));
-        game.setPlatform(getAllGameElements(scGame, PLATFORM));
-        game.setEngine(getAllGameElements(scGame, ENGINE));
-        game.setGenre(getAllGameElements(scGame, GENRE, true));
-        game.setSetting( getAllGameElements(scGame, SETTING, true));
-
-        return game;
-
+            if (filterNamePassed && filterPublisherPassed) {
+                return curGame;
+            }
+        }
+        return null;
     }
+
+    private boolean passPartialFilter(String filter, ArrayList<String> criteria) {
+        if (!filter.equals("")){
+            // ArrayList<String> names = game.getName();
+            for (int j = 0; j < criteria.size(); j += 1) {
+                System.out.println(criteria.get(j));
+                if (criteria.get(j).indexOf(filter) != -1) {
+                    return true;
+                }
+            }
+        } else {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean passFilter(String filter, Game game) {
+        if (!filter.equals("")){
+            ArrayList<String> names = game.getName();
+            for (int j = 0; j < names.size(); j += 1) {
+                System.out.println(names.get(j));
+                if (names.get(j).equals(filter)) {
+                    return true;
+                }
+            }
+        } else {
+            return true;
+        }
+        return false;
+    }
+
     public void getFullInfoAboutGame(String name) {
 
         ScAddr scGame = this.findNodeById(COMPUTER_GAME, name);
@@ -293,6 +306,13 @@ public class GameDAO {
         PLATFORM = sctpClient.findElementBySystemIdentifier("nrel_platform");
         ENGINE = sctpClient.findElementBySystemIdentifier("nrel_game_engine");
         MAIN_IDTF = sctpClient.findElementBySystemIdentifier("nrel_main_idtf");
+
+        System.out.println("START ALL GAMES");
+        System.out.println("====================================================================================");
+        allGames = this.getAllGames(COMPUTER_GAME);
+        System.out.println(allGames);
+        System.out.println("====================================================================================");
+
 
         return flag;
     }
