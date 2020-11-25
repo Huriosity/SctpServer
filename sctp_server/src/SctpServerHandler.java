@@ -67,9 +67,14 @@ public class SctpServerHandler extends Thread{
                                 break;
                             }
                             case "/game_part": {
-                                String filter = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
+                                // String filter = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
+                                String nameFilter = getFilter(requestURL, "name");
+                                String publisherFilter = getFilter(requestURL, "publisher");
+                                String developerFilter = getFilter(requestURL, "developer");
+                                String genre = "";
+
                                 System.out.println("We here");
-                                this.view_part(output, filter);
+                                this.view_part(output, nameFilter);
                                 break;
                             }
                             default: {
@@ -115,6 +120,43 @@ public class SctpServerHandler extends Thread{
         }
     }
 
+    private String getFilter(String requestURL, String filterName){
+        int indexOfFilterNameStart = requestURL.indexOf(filterName);
+        if (indexOfFilterNameStart != -1){
+            System.out.println("RequestUrl:" + requestURL);
+            System.out.println("filterName:" + filterName);
+            String filter = "";
+            int indexOfFilterNameEnd = requestURL.indexOf("&", indexOfFilterNameStart);
+
+            if (indexOfFilterNameEnd != -1) {
+                // if (indexOfFilterNameEnd = inde)
+                filter = requestURL.substring(indexOfFilterNameStart, indexOfFilterNameEnd)
+                        .replace("+", " ");
+                filter = trySplitFilter(filter);
+            } else {
+                filter = requestURL.substring(indexOfFilterNameStart)
+                        .replace("+", " ");
+                filter = trySplitFilter(filter);
+
+
+                        //.split("=")[1];
+            }
+            System.out.println("find this filter: " + filter);
+            return filter;
+        }
+        return "";
+    }
+
+    private String trySplitFilter(String filter) {
+        try {
+            filter = filter.split("=")[1];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            filter = "";
+        }
+
+        return filter;
+    }
+
     private void view_game_id(OutputStream output, String name) throws IOException {
         System.out.println(name);
         entities.Game game = gameDAO.getGame(name);
@@ -151,7 +193,7 @@ public class SctpServerHandler extends Thread{
     }
 
     private void view_part(OutputStream output,String filter) throws IOException{
-        ArrayList<entities.Game> allGames = gameDAO.getFilteredGames(filter);
+        ArrayList<entities.Game> allGames = gameDAO.getFilteredGames(filter, "concept_computer_game");
         JSONArray list = new JSONArray();
         for (int i = 0; i < allGames.size(); i += 1) {
             list.add(allGames.get(i).getGameAsJSONObject());

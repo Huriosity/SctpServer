@@ -1,6 +1,9 @@
 package dao;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+
 import sctp.*;
 import entities.Game;
 
@@ -105,21 +108,25 @@ public class GameDAO {
         return result;
     }
 
-    private ArrayList<ScAddr> getAllGames(boolean needScAddresses){
-        ArrayList<ScAddr> result = new ArrayList<ScAddr>();
+    private ArrayList<ScAddr> getAllGames(boolean needScAddresses, ScAddr scNodeClass){
+        Set<ScAddr> result = new HashSet<ScAddr>();
         SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
-                COMPUTER_GAME,
+                scNodeClass,
                 new ScType(ScType.ArcPosConstPerm),
                 new ScType(ScType.NodeConstClass)); // game
         while(iter3.next()){
             result.add(iter3.value(2));
         }
-        return result;
+        System.out.println("get All Games (2) result: ");
+        System.out.println(result);
+        System.out.println("get All Games (2) array from result: ");
+        System.out.println(new ArrayList<ScAddr>(result));
+        return new ArrayList<ScAddr>(result);
     }
 
-    public ArrayList<Game> getAllGames(){
+    public ArrayList<Game> getAllGames(ScAddr scNodeClass){
         ArrayList<Game> result = new ArrayList<Game>();
-        ArrayList<ScAddr> scAddresses = getAllGames(true);
+        ArrayList<ScAddr> scAddresses = getAllGames(true, scNodeClass);
         for (int i = 0; i < scAddresses.size(); i += 1) {
             //System.out.println();
             result.add(this.getGameByScAddr(scAddresses.get(i)));
@@ -127,19 +134,40 @@ public class GameDAO {
         return result;
     }
 
-    public ArrayList<Game> getFilteredGames(String filter) {
-        ArrayList<Game> filteredGames = new ArrayList<Game>();
-        ArrayList<ScAddr> scAddresses = getAllGames(true);
+    public ArrayList<Game> getAllGames(){
+        return getAllGames(COMPUTER_GAME);
+    }
+
+    public ArrayList<Game> getFilteredGames(String filter, String genreName) {
+        long startTime = System.currentTimeMillis();
+        long startMethod = startTime;
+        ScAddr genreClass = sctpClient.findElementBySystemIdentifier(genreName);
+        long endTime = System.currentTimeMillis();
+        System.out.println("Total execution time of get genre class: " + (endTime-startTime) + "ms");
+        if (genreClass == null) {
+            return new ArrayList<>();
+        }
+        ArrayList<Game> filteredGames = new ArrayList<>();
+        startTime = System.currentTimeMillis();
+        ArrayList<ScAddr> scAddresses = getAllGames(true, genreClass);
+        System.out.println("get scAddresses array from result: ");
+        System.out.println(scAddresses);
+        endTime = System.currentTimeMillis();
+        System.out.println("Total execution time of getAllGames method: " + (endTime-startTime) + "ms");
         for (int i = 0; i < scAddresses.size(); i += 1) {
             ScAddr curAddr = scAddresses.get(i);
             ArrayList<String> names = getAllGameElements(curAddr, MAIN_IDTF);
             for (int j = 0; j < names.size(); j += 1) {
                 if (names.get(j).indexOf(filter) != -1) {
-                    Game game = getGameByScAddr(curAddr);
-                    filteredGames.add(game);
+                    System.out.println("FIND !!!!!!!!!!!!!!!!!!!!!!!!!! " + i);
+                    // Game game = getGameByScAddr(curAddr);
+                    // filteredGames.add(game);
+                    break;
                 }
             }
         }
+        endTime = System.currentTimeMillis();
+        System.out.println("Total execution time of getFilteredGames method: " + (endTime-startMethod) + "ms");
         return filteredGames;
     }
 
