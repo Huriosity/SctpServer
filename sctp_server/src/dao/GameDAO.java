@@ -1,8 +1,6 @@
 package dao;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 
 import sctp.*;
 import entities.Game;
@@ -25,9 +23,7 @@ public class GameDAO {
     // 1 -> 3    ===  1 2 3
     // 5 -> 2    ===  5 4 2
     //
-    // , that return 3 element of Cunctruction
-    // new ScType(ScType.ArcCommon)
-    // ArcCommonConst
+    // , that return 3 element content of Cunctruction
 
     private String get(ScAddr game, ScAddr elem){
         SctpIterator iter5 = sctpClient.iterate5(SctpIterator.Iterator5F_A_A_A_F,
@@ -42,23 +38,6 @@ public class GameDAO {
             }
             else{
                 return this.get(iter5.value(2), MAIN_IDTF);
-            }
-        }
-        return "";
-    }
-
-    private String get3(ScAddr game, ScAddr elem){
-        SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
-                elem,
-                new ScType(),
-                new ScType());
-        while(iter3.next()){
-            SctpIterator iter32 = sctpClient.iterate3(SctpIterator.Iterator3F_A_F,
-                    iter3.value(2),
-                    new ScType(),
-                    game);
-            if(iter32.next()){
-                return this.get(iter3.value(2), MAIN_IDTF);
             }
         }
         return "";
@@ -90,12 +69,8 @@ public class GameDAO {
         ArrayList<String> result = new ArrayList<String>();
         SctpIterator iter5 = sctpClient.iterate5(SctpIterator.Iterator5F_A_A_A_F,
                 game,
-                //new ScType(),
-                //new ScType(),
-                //new ScType(),
                 new ScType(ScType.ArcCommonConst),
                 new ScType(),
-                // new ScType(ScType.Link),
                 new ScType(ScType.ArcPosConstPerm),
                 elem);
         while(iter5.next()){
@@ -139,8 +114,8 @@ public class GameDAO {
     public ArrayList<Game> getAllGames(){
         return allGames;
     }
+
     public ArrayList<Game> getFilteredGames(String nameFilter,String publisherFilter,String developerFilter, String genreName) {
-        long startTime = System.currentTimeMillis();
         ArrayList<Game> result = new ArrayList<>();
         for (int i = 0; i < allGames.size(); i += 1) {
             Game curGame = allGames.get(i);
@@ -152,25 +127,7 @@ public class GameDAO {
                 result.add(curGame);
             }
         }
-        long endTime = System.currentTimeMillis();
-        System.out.println("Total execution time of get filtered games: " + (endTime-startTime) + "ms");
         return result;
-    }
-
-    private ScAddr findNodeById(ScAddr addr, String name) {
-        SctpIterator iter3 = sctpClient.iterate3(SctpIterator.Iterator3F_A_A,
-                addr,
-                new ScType(),
-                new ScType());
-        if(iter3 == null){
-            return null;
-        }
-        while (iter3.next()) {
-            if(name.equals(this.get(iter3.value(2), MAIN_IDTF))){
-                return iter3.value(2);
-            }
-        }
-        return null;
     }
 
     private Game getGameByScAddr(ScAddr scGame) {
@@ -192,7 +149,7 @@ public class GameDAO {
             Game curGame = allGames.get(i);
             boolean filterNamePassed = passFilter(name, curGame);
             boolean filterPublisherPassed = passFilter(publisher, curGame);
-            boolean filterDeveloperPassed = passFilter(developer, curGame);
+            // boolean filterDeveloperPassed = passFilter(developer, curGame);
 
             if (filterNamePassed && filterPublisherPassed) {
                 return curGame;
@@ -203,7 +160,6 @@ public class GameDAO {
 
     private boolean passPartialFilter(String filter, ArrayList<String> criteria) {
         if (!filter.equals("")){
-            // ArrayList<String> names = game.getName();
             for (int j = 0; j < criteria.size(); j += 1) {
                 System.out.println(criteria.get(j));
                 if (criteria.get(j).indexOf(filter) != -1) {
@@ -231,66 +187,6 @@ public class GameDAO {
         return false;
     }
 
-    public void getFullInfoAboutGame(String name) {
-
-        ScAddr scGame = this.findNodeById(COMPUTER_GAME, name);
-        ArrayList<String> allNames = getAllGameElements(scGame, MAIN_IDTF);
-        ArrayList<String> publisherNames = getAllGameElements(scGame, COMPANY_PUBLISHER);
-        ArrayList<String> developerNames = getAllGameElements(scGame, COMPANY_DEVELOP);
-        ArrayList<String> platformNames = getAllGameElements(scGame, PLATFORM);
-        ArrayList<String> engineNames = getAllGameElements(scGame, ENGINE);
-        ArrayList<String> genreNames = getAllGameElements(scGame, GENRE, true);
-        ArrayList<String> settingNames = getAllGameElements(scGame, SETTING, true);
-
-        for (int j = 0; j < allNames.size(); j += 1) {
-            printScAddrIdf(allNames.get(j));
-        }
-
-        System.out.println("publishers");
-        System.out.println(publisherNames.size());
-        for (int j = 0; j < publisherNames.size(); j += 1) {
-            printScAddrIdf(publisherNames.get(j));
-        }
-
-        System.out.println("developers");
-        System.out.println(developerNames.size());
-        for (int j = 0; j < developerNames.size(); j += 1) {
-            printScAddrIdf(developerNames.get(j));
-        }
-
-        System.out.println("platformNames");
-        System.out.println(platformNames.size());
-        for (int j = 0; j < platformNames.size(); j += 1) {
-            printScAddrIdf(platformNames.get(j));
-        }
-
-        System.out.println("engineNames");
-        System.out.println(engineNames.size());
-        for (int j = 0; j < engineNames.size(); j += 1) {
-            printScAddrIdf(engineNames.get(j));
-        }
-
-        System.out.println("genreNames");
-        System.out.println(genreNames.size());
-        for (int j = 0; j < genreNames.size(); j += 1) {
-            printScAddrIdf(genreNames.get(j));
-        }
-
-        System.out.println("settingNames");
-        System.out.println(settingNames.size());
-        for (int j = 0; j < settingNames.size(); j += 1) {
-            printScAddrIdf(settingNames.get(j));
-        }
-    }
-
-    public void printScAddrIdf(String ScAddrIdf) {
-        if (ScAddrIdf == "") {
-            System.out.println("Sorry bro, but man, who add this concept in bd don't add idf");
-        } else {
-            System.out.println(ScAddrIdf);
-        }
-    }
-
     public boolean connect(){
         boolean flag = false;
         sctpClient = new SctpClient();
@@ -312,7 +208,6 @@ public class GameDAO {
         allGames = this.getAllGames(COMPUTER_GAME);
         System.out.println(allGames);
         System.out.println("====================================================================================");
-
 
         return flag;
     }

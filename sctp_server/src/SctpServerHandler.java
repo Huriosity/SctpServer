@@ -1,7 +1,6 @@
 import dao.GameDAO;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import sctp.ScAddr;
 
 import java.io.*;
 import java.net.Socket;
@@ -47,7 +46,7 @@ public class SctpServerHandler extends Thread{
             parseRequest(input);
             System.out.println("NOW we have method -  " + method);
             System.out.println("NOW we have url -  " + requestURL);
-            // first here
+
             switch (method){
                 case "GET": {
                     if (isRequestInDatabase(requestURL)) {
@@ -59,23 +58,20 @@ public class SctpServerHandler extends Thread{
                                 String name = getFilter(requestURL, "name");
                                 String publisher = getFilter(requestURL, "publisher");
                                 String developer = getFilter(requestURL, "developer");
-                                        // requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
+
                                 this.view_game_id(output, name, publisher, developer);
                                 break;
                             }
                             case "/game": {  // view_game
-                                System.out.println("find it");
                                 this.view_game(output);
                                 break;
                             }
                             case "/game_part": {
-                                // String filter = requestURL.split("\\?")[1].split("=")[1].replace("+", " ");
                                 String nameFilter = getFilter(requestURL, "name");
                                 String publisherFilter = getFilter(requestURL, "publisher");
                                 String developerFilter = getFilter(requestURL, "developer");
-                                String genre = "";
+                                // String genre = "";
 
-                                System.out.println("We here");
                                 this.view_part(output, nameFilter, publisherFilter, developerFilter);
                                 break;
                             }
@@ -139,8 +135,6 @@ public class SctpServerHandler extends Thread{
                         .replace("+", " ");
                 filter = trySplitFilter(filter);
 
-
-                        //.split("=")[1];
             }
             System.out.println("find this filter: " + filter);
             return filter;
@@ -164,7 +158,6 @@ public class SctpServerHandler extends Thread{
 
         if(game == null){
             sendHttpMessage(output, HTTP_MESSAGE.NOT_FOUND_404, 404);
-            //this.redirect("view_game", output);пуеПф
             return;
         }
         String type = CONTENT_TYPES.get("application/json");
@@ -206,15 +199,6 @@ public class SctpServerHandler extends Thread{
         this.sendHeader(output, 200, HTTP_MESSAGE.OK_200, type, jsonString.length());
         sendContent(output, jsonString, "windows-1251");
         output.flush();
-    }
-
-    private void redirect(String url, OutputStream output){
-        try {
-            output.write("HTTP/1.1 301 Moved Permanently\r\n".getBytes());
-            output.write(("Location: " + url + "\r\n\n").getBytes());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     private void sendHttpMessage(OutputStream output, String message, int statusCode) {
@@ -274,7 +258,6 @@ public class SctpServerHandler extends Thread{
         System.out.println("firstLine = " + firstLine);
         String headerLine = null;
         while((headerLine = br.readLine()).length() != 0){
-            // System.out.println(headerLine);
             if(headerLine.contains("User-Agent")){
                 UserAgent = headerLine.split(" ",2)[1];
             }
